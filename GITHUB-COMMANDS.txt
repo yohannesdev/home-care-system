@@ -1,0 +1,14 @@
+# GitHub Pages Deployment Commands
+# Replace YOUR-GITHUB-URL with your actual repository URL from GitHub
+
+# Add the remote repository
+git remote add origin YOUR-GITHUB-URL
+
+# Rename branch to main (GitHub's default)
+git branch -M main
+
+# Push your code
+git push -u origin main
+
+# You'll be prompted to login to GitHub
+# Use your GitHub username and Personal Access Token (not password!)
