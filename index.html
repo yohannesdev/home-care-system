@@ -161,23 +161,25 @@
       // Load data from localStorage on mount
       useEffect(() => {
         const loadData = async () => {
+          // ALWAYS load from localStorage first (for GitHub Pages)
+          const storedAppointments = localStorage.getItem('homeCareAppointments');
+          const storedEvaluations = localStorage.getItem('homeCareEvaluations');
+          
+          if (storedAppointments) setAppointments(JSON.parse(storedAppointments));
+          if (storedEvaluations) setEvaluations(JSON.parse(storedEvaluations));
+          console.log('✅ Data loaded from localStorage');
+
+          // Also try to sync with backend API (if available)
           try {
-            // Try to load from backend API first
             const [appointmentsData, evaluationsData] = await Promise.all([
               HomeCareAPI.getAppointments(),
               HomeCareAPI.getEvaluations()
             ]);
             setAppointments(appointmentsData);
             setEvaluations(evaluationsData);
-            console.log('✅ Data loaded from server');
+            console.log('✅ Data synced with server');
           } catch (error) {
-            console.warn('⚠️ Server unavailable, using localStorage fallback');
-            // Fallback to localStorage if server is unavailable
-            const storedAppointments = localStorage.getItem('homeCareAppointments');
-            const storedEvaluations = localStorage.getItem('homeCareEvaluations');
-            
-            if (storedAppointments) setAppointments(JSON.parse(storedAppointments));
-            if (storedEvaluations) setEvaluations(JSON.parse(storedEvaluations));
+            console.log('ℹ️ Backend not available (using localStorage only)');
           }
         };
         
@@ -298,18 +300,23 @@
             submittedAt: timestamp
           };
 
+          // ALWAYS save to localStorage first (for GitHub Pages)
+          const updatedAppointments = [...appointments, newAppointment];
+          const updatedEvaluations = [...evaluations, newEvaluation];
+          
+          setAppointments(updatedAppointments);
+          setEvaluations(updatedEvaluations);
+          
+          localStorage.setItem('homeCareAppointments', JSON.stringify(updatedAppointments));
+          localStorage.setItem('homeCareEvaluations', JSON.stringify(updatedEvaluations));
+          console.log('✅ Data saved to localStorage');
+
+          // Try to also save to backend API (if available)
           try {
-            // Try to save to backend API
             await HomeCareAPI.submitAppointment(newAppointment, newEvaluation);
-            console.log('✅ Data saved to server');
+            console.log('✅ Data also saved to server');
           } catch (error) {
-            console.warn('⚠️ Server unavailable, saving to localStorage');
-            // Fallback to localStorage if server is unavailable
-            const updatedAppointments = [...appointments, newAppointment];
-            const updatedEvaluations = [...evaluations, newEvaluation];
-            
-            localStorage.setItem('homeCareAppointments', JSON.stringify(updatedAppointments));
-            localStorage.setItem('homeCareEvaluations', JSON.stringify(updatedEvaluations));
+            console.warn('ℹ️ Backend not available (using localStorage only)');
           }
 
           setSubmitted(true);
