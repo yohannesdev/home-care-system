@@ -1,7 +1,7 @@
 // API Client for Home Care System - Google Sheets Backend
 // Replace YOUR_GOOGLE_APPS_SCRIPT_URL_HERE with your actual deployment URL
 
-const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbwpCEVZ7cJBBEHV8SYlWmyv9XROGNYlwL-TGWu9ctlUCRTDOTVnCZ2boqzMwlvCKlzvfVw/exec';
+const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw-33BF0L-fYzR4YxyDDS4IPSR8MstzZzHGSV589yzb9sDuX-ELUbgCyCfndLXXQLEocg/exec';
 
 class HomeCareAPI {
   // Submit appointment with evaluation
