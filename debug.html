@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Tool - FOR ALL HOME CARE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        h1 { color: #4F46E5; }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4F46E5;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #4338CA;
+        }
+        .success { background: #10B981; }
+        .danger { background: #DC2626; }
+        .warning { background: #F59E0B; }
+        pre {
+            background: #f3f4f6;
+            padding: 15px;
+            overflow-x: auto;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.ok { background: #D1FAE5; color: #065F46; }
+        .status.error { background: #FEE2E2; color: #991B1B; }
+        .test-form {
+            background: #EEF2FF;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug Tool - FOR ALL HOME CARE</h1>
+    
+    <div class="section">
+        <h2>📊 Quick Status</h2>
+        <div id="quickStatus"></div>
+    </div>
+
+    <div class="section">
+        <h2>🔍 Actions</h2>
+        <button onclick="checkEverything()">🔄 Refresh All Data</button>
+        <button onclick="testSubmit()" class="success">✅ Test Quick Submit</button>
+        <button onclick="clearAll()" class="danger">🗑️ Clear All Data</button>
+        <button onclick="window.location.href='index.html?admin=true'">👨‍💼 Open Admin Dashboard</button>
+        <button onclick="window.location.href='index.html'">📝 Open Client Form</button>
+    </div>
+
+    <div class="section">
+        <h2>💾 localStorage Data</h2>
+        <div id="localStorageData"></div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 Manual Test Submit</h2>
+        <div class="test-form">
+            <input type="text" id="testName" placeholder="Test Client Name" value="Test Client">
+            <input type="email" id="testEmail" placeholder="Email" value="test@example.com">
+            <button onclick="manualTestSubmit()" class="success">Submit Test Appointment</button>
+        </div>
+        <div id="testResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>🌐 Environment Info</h2>
+        <div id="envInfo"></div>
+    </div>
+
+    <script>
+        function checkEverything() {
+            checkQuickStatus();
+            checkLocalStorage();
+            checkEnvironment();
+        }
+
+        function checkQuickStatus() {
+            const appointments = localStorage.getItem('homeCareAppointments');
+            const evaluations = localStorage.getItem('homeCareEvaluations');
+            
+            let aptCount = 0;
+            let evalCount = 0;
+            
+            if (appointments) aptCount = JSON.parse(appointments).length;
+            if (evaluations) evalCount = JSON.parse(evaluations).length;
+            
+            const status = aptCount > 0 ? 'ok' : 'error';
+            
+            document.getElementById('quickStatus').innerHTML = `
+                <p><strong>Appointments:</strong> ${aptCount} <span class="status ${status}">${aptCount > 0 ? '✅ DATA EXISTS' : '❌ NO DATA'}</span></p>
+                <p><strong>Evaluations:</strong> ${evalCount} <span class="status ${status}">${evalCount > 0 ? '✅ DATA EXISTS' : '❌ NO DATA'}</span></p>
+                <p><strong>Status:</strong> ${aptCount > 0 ? '✅ System working! Data is saved.' : '❌ No data found. Try submitting a test appointment.'}</p>
+            `;
+        }
+
+        function checkLocalStorage() {
+            const appointments = localStorage.getItem('homeCareAppointments');
+            const evaluations = localStorage.getItem('homeCareEvaluations');
+            
+            let html = '';
+            
+            if (appointments) {
+                const aptData = JSON.parse(appointments);
+                html += `<h3>Appointments (${aptData.length})</h3>`;
+                html += `<pre>${JSON.stringify(aptData, null, 2)}</pre>`;
+            } else {
+                html += '<p>❌ No appointments in localStorage</p>';
+            }
+            
+            if (evaluations) {
+                const evalData = JSON.parse(evaluations);
+                html += `<h3>Evaluations (${evalData.length})</h3>`;
+                html += `<pre>${JSON.stringify(evalData, null, 2)}</pre>`;
+            } else {
+                html += '<p>❌ No evaluations in localStorage</p>';
+            }
+            
+            document.getElementById('localStorageData').innerHTML = html;
+        }
+
+        function checkEnvironment() {
+            document.getElementById('envInfo').innerHTML = `
+                <p><strong>URL:</strong> ${window.location.href}</p>
+                <p><strong>Browser:</strong> ${navigator.userAgent}</p>
+                <p><strong>localStorage Available:</strong> ${typeof(Storage) !== "undefined" ? '✅ Yes' : '❌ No'}</p>
+                <p><strong>Cookies Enabled:</strong> ${navigator.cookieEnabled ? '✅ Yes' : '❌ No'}</p>
+            `;
+        }
+
+        function testSubmit() {
+            const timestamp = new Date().toISOString();
+            const appointmentId = Date.now();
+
+            const newAppointment = {
+                id: appointmentId,
+                evaluatorName: 'Test Evaluator',
+                evaluatorSignature: 'Test Signature',
+                parentGuardianName: 'Test Parent',
+                clientName: 'Test Client ' + new Date().getTime(),
+                serviceProviderName: 'Test Provider',
+                email: 'test@example.com',
+                phone: '555-0123',
+                address: '123 Test St',
+                appointmentDate: '2026-02-10',
+                appointmentTime: '10:00',
+                serviceType: ['Personal Care'],
+                notes: 'Auto-generated test appointment',
+                status: 'pending',
+                submittedAt: timestamp
+            };
+
+            const newEvaluation = {
+                id: appointmentId + 1,
+                appointmentId: appointmentId,
+                evaluationType: 'Staff and Service Evaluation',
+                evaluatorName: 'Test Evaluator',
+                clientName: 'Test Client',
+                submittedAt: timestamp
+            };
+
+            // Get existing data
+            const existingApt = localStorage.getItem('homeCareAppointments');
+            const existingEval = localStorage.getItem('homeCareEvaluations');
+            
+            const appointments = existingApt ? JSON.parse(existingApt) : [];
+            const evaluations = existingEval ? JSON.parse(existingEval) : [];
+            
+            // Add new data
+            appointments.push(newAppointment);
+            evaluations.push(newEvaluation);
+            
+            // Save back
+            localStorage.setItem('homeCareAppointments', JSON.stringify(appointments));
+            localStorage.setItem('homeCareEvaluations', JSON.stringify(evaluations));
+            
+            alert('✅ Test appointment created!\n\nAppointment ID: ' + appointmentId + '\n\nCheck the data below and open Admin Dashboard to see it.');
+            checkEverything();
+        }
+
+        function manualTestSubmit() {
+            const name = document.getElementById('testName').value;
+            const email = document.getElementById('testEmail').value;
+            
+            if (!name || !email) {
+                alert('❌ Please fill in name and email');
+                return;
+            }
+            
+            const timestamp = new Date().toISOString();
+            const appointmentId = Date.now();
+
+            const newAppointment = {
+                id: appointmentId,
+                evaluatorName: 'Manual Test',
+                evaluatorSignature: 'Manual Signature',
+                parentGuardianName: 'Parent - ' + name,
+                clientName: name,
+                serviceProviderName: 'Provider - ' + name,
+                email: email,
+                phone: '555-0000',
+                address: '123 Test Street',
+                appointmentDate: '2026-02-10',
+                appointmentTime: '14:00',
+                serviceType: ['Personal Care'],
+                notes: 'Manual test submission',
+                status: 'pending',
+                submittedAt: timestamp
+            };
+
+            const newEvaluation = {
+                id: appointmentId + 1,
+                appointmentId: appointmentId,
+                evaluationType: 'Staff and Service Evaluation',
+                evaluatorName: 'Manual Test',
+                clientName: name,
+                email: email,
+                submittedAt: timestamp
+            };
+
+            // Get existing
+            const existingApt = localStorage.getItem('homeCareAppointments');
+            const existingEval = localStorage.getItem('homeCareEvaluations');
+            
+            const appointments = existingApt ? JSON.parse(existingApt) : [];
+            const evaluations = existingEval ? JSON.parse(existingEval) : [];
+            
+            // Add new
+            appointments.push(newAppointment);
+            evaluations.push(newEvaluation);
+            
+            // Save
+            localStorage.setItem('homeCareAppointments', JSON.stringify(appointments));
+            localStorage.setItem('homeCareEvaluations', JSON.stringify(evaluations));
+            
+            document.getElementById('testResult').innerHTML = `
+                <div style="background: #D1FAE5; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                    <strong>✅ Success!</strong><br>
+                    Appointment ID: ${appointmentId}<br>
+                    Client: ${name}<br>
+                    Time: ${new Date().toLocaleString()}<br><br>
+                    <strong>Next step:</strong> Click "Open Admin Dashboard" button above to see it!
+                </div>
+            `;
+            
+            checkEverything();
+        }
+
+        function clearAll() {
+            if (confirm('⚠️ Delete ALL appointments and evaluations?')) {
+                localStorage.removeItem('homeCareAppointments');
+                localStorage.removeItem('homeCareEvaluations');
+                alert('✅ All data cleared!');
+                checkEverything();
+            }
+        }
+
+        // Auto-run on load
+        checkEverything();
+    </script>
+</body>
+</html>
