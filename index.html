@@ -165,9 +165,12 @@
           const storedAppointments = localStorage.getItem('homeCareAppointments');
           const storedEvaluations = localStorage.getItem('homeCareEvaluations');
           
-          if (storedAppointments) setAppointments(JSON.parse(storedAppointments));
-          if (storedEvaluations) setEvaluations(JSON.parse(storedEvaluations));
-          console.log('✅ Data loaded from localStorage');
+          const localApts = storedAppointments ? JSON.parse(storedAppointments) : [];
+          const localEvals = storedEvaluations ? JSON.parse(storedEvaluations) : [];
+          
+          setAppointments(localApts);
+          setEvaluations(localEvals);
+          console.log('✅ Data loaded from localStorage:', localApts.length, 'appointments');
 
           // Also try to sync with backend API (if available)
           try {
@@ -175,11 +178,20 @@
               HomeCareAPI.getAppointments(),
               HomeCareAPI.getEvaluations()
             ]);
-            setAppointments(appointmentsData);
-            setEvaluations(evaluationsData);
-            console.log('✅ Data synced with server');
+            
+            // Only update if server has data (don't overwrite localStorage with empty data)
+            if (appointmentsData && appointmentsData.length > 0) {
+              setAppointments(appointmentsData);
+              setEvaluations(evaluationsData || []);
+              // Update localStorage with server data
+              localStorage.setItem('homeCareAppointments', JSON.stringify(appointmentsData));
+              localStorage.setItem('homeCareEvaluations', JSON.stringify(evaluationsData || []));
+              console.log('✅ Data synced from server:', appointmentsData.length, 'appointments');
+            } else {
+              console.log('ℹ️ Server has no data, keeping localStorage data');
+            }
           } catch (error) {
-            console.log('ℹ️ Backend not available (using localStorage only)');
+            console.log('ℹ️ Backend not available (using localStorage only):', error.message);
           }
         };
         
@@ -309,14 +321,15 @@
           
           localStorage.setItem('homeCareAppointments', JSON.stringify(updatedAppointments));
           localStorage.setItem('homeCareEvaluations', JSON.stringify(updatedEvaluations));
-          console.log('✅ Data saved to localStorage');
+          console.log('✅ Data saved to localStorage:', newAppointment);
 
           // Try to also save to backend API (if available)
           try {
-            await HomeCareAPI.submitAppointment(newAppointment, newEvaluation);
-            console.log('✅ Data also saved to server');
+            const result = await HomeCareAPI.submitAppointment(newAppointment, newEvaluation);
+            console.log('✅ Data also saved to Google Sheets:', result);
           } catch (error) {
-            console.warn('ℹ️ Backend not available (using localStorage only)');
+            console.warn('⚠️ Google Sheets save failed:', error);
+            console.warn('Data is still saved in localStorage');
           }
 
           setSubmitted(true);
