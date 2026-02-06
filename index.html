@@ -443,66 +443,286 @@
       };
 
       const exportToExcel = () => {
+        console.log('🔵 Export started:', activeTab);
+        console.log('📊 Appointments:', appointments.length, appointments);
+        console.log('📊 Evaluations:', evaluations.length, evaluations);
+        
         let csvContent = '';
         
         if (activeTab === 'appointments') {
           const headers = ['ID', 'Evaluator Name', 'Parent/Guardian Name', 'Client Name', 'Service Provider', 'Email', 'Phone', 'Address', 'Service Types', 'Date', 'Time', 'Notes', 'Status', 'Submitted At'];
+          
+          if (appointments.length === 0) {
+            alert('No appointments to export. Please submit some appointments first.');
+            return;
+          }
+          
           const rows = appointments.map(apt => [
-            apt.id,
-            apt.evaluatorName,
-            apt.parentGuardianName,
-            apt.clientName,
-            apt.serviceProviderName,
-            apt.email,
-            apt.phone,
-            apt.address,
-            apt.serviceType.join('; '),
-            apt.appointmentDate,
-            apt.appointmentTime,
+            `'${apt.id || ''}`, // Prefix with ' to prevent scientific notation
+            apt.evaluatorName || '',
+            apt.parentGuardianName || '',
+            apt.clientName || '',
+            apt.serviceProviderName || '',
+            apt.email || '',
+            apt.phone || '',
+            apt.address || '',
+            (apt.serviceType && Array.isArray(apt.serviceType)) ? apt.serviceType.join('; ') : '',
+            apt.appointmentDate || '',
+            apt.appointmentTime || '',
             apt.notes || '',
-            apt.status,
-            formatDateTime(apt.submittedAt)
+            apt.status || 'pending',
+            apt.submittedAt ? formatDateTime(apt.submittedAt) : ''
           ]);
           
           csvContent = [
             headers.join(','),
-            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-          ].join('\\n');
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+          ].join('\n');
         } else {
-          const headers = ['Evaluation ID', 'Appointment ID', 'Evaluator Name', 'Parent/Guardian', 'Client Name', 'Service Provider', 'Service Types', 'Email', 'Type', 'Question', 'Answer', 'Submitted At'];
-          const rows = [];
+          // Better format: One row per evaluation with all Q&A combined
+          const headers = ['Evaluation ID', 'Appointment ID', 'Type', 'Evaluator Name', 'Parent/Guardian', 'Client Name', 'Service Provider', 'Service Types', 'Email', 'Responses', 'Submitted At'];
           
-          evaluations.forEach(ev => {
-            ev.responses.forEach(resp => {
-              rows.push([
-                ev.id,
-                ev.appointmentId,
-                ev.evaluatorName,
-                ev.parentGuardianName,
-                ev.clientName,
-                ev.serviceProviderName,
-                ev.serviceType.join('; '),
-                ev.email,
-                ev.evaluationType === 'staff' ? 'Staff/Service Evaluation' : 'Parental Provider Evaluation',
-                resp.question,
-                resp.answer,
-                formatDateTime(ev.submittedAt)
-              ]);
-            });
+          if (evaluations.length === 0) {
+            alert('No evaluations to export. Please submit some evaluations first.');
+            return;
+          }
+          
+          const rows = evaluations.map(ev => {
+            // Combine all Q&A into readable format
+            const responsesText = (ev.responses || [])
+              .map(resp => `Q: ${resp.question}\nA: ${resp.answer}`)
+              .join('\n\n');
+            
+            return [
+              `'${ev.id || ''}`, // Prefix with ' to prevent scientific notation
+              `'${ev.appointmentId || ''}`, // Prefix with ' to prevent scientific notation
+              ev.evaluationType === 'staff' ? 'Staff/Service Evaluation' : 'Parental Provider Evaluation',
+              ev.evaluatorName || '',
+              ev.parentGuardianName || '',
+              ev.clientName || '',
+              ev.serviceProviderName || '',
+              (ev.serviceType && Array.isArray(ev.serviceType)) ? ev.serviceType.join('; ') : '',
+              ev.email || '',
+              responsesText,
+              ev.submittedAt ? formatDateTime(ev.submittedAt) : ''
+            ];
           });
           
           csvContent = [
             headers.join(','),
-            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-          ].join('\\n');
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+          ].join('\n');
         }
 
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        console.log('📝 CSV content length:', csvContent.length);
+        console.log('📝 CSV preview:', csvContent.substring(0, 200));
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `FOR_ALL_HOME_CARE_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('✅ Export completed');
+      };
+
+      const exportToWord = () => {
+        if (activeTab === 'appointments') {
+          alert('Word export is optimized for evaluations. Please switch to the Evaluations tab.');
+          return;
+        }
+
+        if (evaluations.length === 0) {
+          alert('No evaluations to export. Please submit some evaluations first.');
+          return;
+        }
+
+        let htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>FOR ALL HOME CARE - Evaluations Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    h1 { color: #4F46E5; border-bottom: 3px solid #4F46E5; padding-bottom: 10px; }
+    .evaluation { page-break-after: always; margin-bottom: 40px; border: 1px solid #ddd; padding: 20px; }
+    .eval-header { background: #EEF2FF; padding: 15px; margin: -20px -20px 20px -20px; }
+    .eval-type { color: #10B981; font-weight: bold; font-size: 18px; }
+    .info-grid { display: grid; grid-template-columns: 150px 1fr; gap: 10px; margin: 20px 0; }
+    .info-label { font-weight: bold; color: #4F46E5; }
+    .qa-section { margin: 20px 0; }
+    .question { font-weight: bold; color: #1F2937; margin: 15px 0 5px 0; }
+    .answer { color: #059669; margin-left: 20px; padding: 8px; background: #F0FDF4; border-left: 3px solid #10B981; }
+    .footer { text-align: center; color: #6B7280; font-size: 12px; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h1>FOR ALL HOME CARE AND AGENCY LLC</h1>
+  <p><strong>Evaluation Report</strong> - Generated on ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+  <p>Total Evaluations: ${evaluations.length}</p>
+  <hr>
+`;
+
+        evaluations.forEach((ev, index) => {
+          htmlContent += `
+  <div class="evaluation">
+    <div class="eval-header">
+      <div class="eval-type">${ev.evaluationType === 'staff' ? '📋 Staff/Service Evaluation' : '👨‍👩‍👧 Parental Provider Evaluation'}</div>
+      <div style="font-size: 12px; color: #6B7280; margin-top: 5px;">Evaluation #${index + 1} - Submitted ${formatDateTime(ev.submittedAt)}</div>
+    </div>
+    
+    <div class="info-grid">
+      <div class="info-label">Evaluation ID:</div><div>${ev.id}</div>
+      <div class="info-label">Appointment ID:</div><div>${ev.appointmentId}</div>
+      <div class="info-label">Evaluator:</div><div>${ev.evaluatorName}</div>
+      <div class="info-label">Parent/Guardian:</div><div>${ev.parentGuardianName || 'N/A'}</div>
+      <div class="info-label">Client Name:</div><div>${ev.clientName || 'N/A'}</div>
+      <div class="info-label">Service Provider:</div><div>${ev.serviceProviderName || 'N/A'}</div>
+      <div class="info-label">Service Types:</div><div>${(ev.serviceType || []).join(', ')}</div>
+      <div class="info-label">Email:</div><div>${ev.email}</div>
+    </div>
+    
+    <h3 style="color: #4F46E5; border-bottom: 2px solid #E0E7FF; padding-bottom: 5px;">Responses</h3>
+    <div class="qa-section">
+`;
+          
+          (ev.responses || []).forEach((resp, qIndex) => {
+            htmlContent += `
+      <div class="question">${qIndex + 1}. ${resp.question}</div>
+      <div class="answer">${resp.answer}</div>
+`;
+          });
+          
+          htmlContent += `
+    </div>
+  </div>
+`;
+        });
+
+        htmlContent += `
+  <div class="footer">
+    <p>FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>
+    <p>This report contains ${evaluations.length} evaluation(s)</p>
+  </div>
+</body>
+</html>
+`;
+
+        const blob = new Blob([htmlContent], { type: 'application/msword' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `FOR_ALL_HOME_CARE_Evaluations_${new Date().toISOString().split('T')[0]}.doc`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('✅ Word export completed');
+      };
+
+      const exportToPDF = () => {
+        if (activeTab === 'appointments') {
+          alert('PDF export is optimized for evaluations. Please switch to the Evaluations tab.');
+          return;
+        }
+
+        if (evaluations.length === 0) {
+          alert('No evaluations to export. Please submit some evaluations first.');
+          return;
+        }
+
+        let htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>FOR ALL HOME CARE - Evaluations Report</title>
+  <style>
+    @media print {
+      body { margin: 0; }
+      .evaluation { page-break-after: always; }
+    }
+    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+    h1 { color: #4F46E5; border-bottom: 3px solid #4F46E5; padding-bottom: 10px; }
+    .evaluation { margin-bottom: 40px; border: 1px solid #ddd; padding: 20px; }
+    .eval-header { background: #EEF2FF; padding: 15px; margin: -20px -20px 20px -20px; }
+    .eval-type { color: #10B981; font-weight: bold; font-size: 18px; }
+    .info-grid { display: grid; grid-template-columns: 150px 1fr; gap: 10px; margin: 20px 0; }
+    .info-label { font-weight: bold; color: #4F46E5; }
+    .qa-section { margin: 20px 0; }
+    .question { font-weight: bold; color: #1F2937; margin: 15px 0 5px 0; }
+    .answer { color: #059669; margin-left: 20px; padding: 8px; background: #F0FDF4; border-left: 3px solid #10B981; }
+    .footer { text-align: center; color: #6B7280; font-size: 12px; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h1>FOR ALL HOME CARE AND AGENCY LLC</h1>
+  <p><strong>Evaluation Report</strong> - Generated on ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+  <p>Total Evaluations: ${evaluations.length}</p>
+  <hr>
+`;
+
+        evaluations.forEach((ev, index) => {
+          htmlContent += `
+  <div class="evaluation">
+    <div class="eval-header">
+      <div class="eval-type">${ev.evaluationType === 'staff' ? '📋 Staff/Service Evaluation' : '👨‍👩‍👧 Parental Provider Evaluation'}</div>
+      <div style="font-size: 12px; color: #6B7280; margin-top: 5px;">Evaluation #${index + 1} - Submitted ${formatDateTime(ev.submittedAt)}</div>
+    </div>
+    
+    <div class="info-grid">
+      <div class="info-label">Evaluation ID:</div><div>${ev.id}</div>
+      <div class="info-label">Appointment ID:</div><div>${ev.appointmentId}</div>
+      <div class="info-label">Evaluator:</div><div>${ev.evaluatorName}</div>
+      <div class="info-label">Parent/Guardian:</div><div>${ev.parentGuardianName || 'N/A'}</div>
+      <div class="info-label">Client Name:</div><div>${ev.clientName || 'N/A'}</div>
+      <div class="info-label">Service Provider:</div><div>${ev.serviceProviderName || 'N/A'}</div>
+      <div class="info-label">Service Types:</div><div>${(ev.serviceType || []).join(', ')}</div>
+      <div class="info-label">Email:</div><div>${ev.email}</div>
+    </div>
+    
+    <h3 style="color: #4F46E5; border-bottom: 2px solid #E0E7FF; padding-bottom: 5px;">Responses</h3>
+    <div class="qa-section">
+`;
+          
+          (ev.responses || []).forEach((resp, qIndex) => {
+            htmlContent += `
+      <div class="question">${qIndex + 1}. ${resp.question}</div>
+      <div class="answer">${resp.answer}</div>
+`;
+          });
+          
+          htmlContent += `
+    </div>
+  </div>
+`;
+        });
+
+        htmlContent += `
+  <div class="footer">
+    <p>FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>
+    <p>This report contains ${evaluations.length} evaluation(s)</p>
+  </div>
+  <script>
+    window.onload = function() {
+      window.print();
+    };
+  </script>
+</body>
+</html>
+`;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        
+        console.log('✅ PDF export (print dialog) opened');
       };
 
       const renderQuestionInput = (q) => {
@@ -694,13 +914,31 @@
                 </div>
 
                 <div className="p-6">
-                  <button
-                    onClick={exportToExcel}
-                    className="mb-4 flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export to Excel
-                  </button>
+                  <div className="mb-4 flex gap-3">
+                    <button
+                      onClick={exportToExcel}
+                      className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export to Excel
+                    </button>
+                    
+                    <button
+                      onClick={exportToWord}
+                      className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Export to Word
+                    </button>
+                    
+                    <button
+                      onClick={exportToPDF}
+                      className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Export to PDF
+                    </button>
+                  </div>
 
                   {activeTab === 'appointments' && (
                     <div className="space-y-4">

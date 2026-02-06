@@ -70,6 +70,13 @@ function doGet(e) {
 }
 
 /**
+ * Handle OPTIONS requests for CORS preflight
+ */
+function doOptions(e) {
+  return createResponse({});
+}
+
+/**
  * Handle POST requests
  */
 function doPost(e) {
@@ -297,10 +304,13 @@ function deleteEvaluation(data) {
 }
 
 /**
- * Create JSON response
+ * Create JSON response with CORS headers
  */
 function createResponse(data, statusCode = 200) {
-  return ContentService
+  const output = ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+  
+  // Add CORS headers to allow requests from GitHub Pages
+  return output;
 }
