@@ -1,0 +1,32 @@
+# Environment variables (contains passwords!)
+.env
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Server files (not needed for GitHub Pages)
+server.js
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+*.mdf
+*.ldf
+
+# PowerShell scripts
+setup.ps1
+start.ps1
