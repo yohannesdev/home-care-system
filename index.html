@@ -511,16 +511,16 @@
             htmlParts.push('<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #E0E7FF;">');
             htmlParts.push('<p style="color: #6B7280; font-size: 14px; margin-bottom: 10px;"><strong>Signature:</strong></p>');
             htmlParts.push('<p style="font-family: \"Brush Script MT\", cursive; font-size: 24px; color: #1F2937; font-style: italic;">' + ev.evaluatorSignature + '</p>');
+            htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 11px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #E0E7FF;">');
+            htmlParts.push('<p style="margin: 3px 0;">FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>');
+            htmlParts.push('<p style="margin: 3px 0;">Evaluation #' + (index + 1) + '</p>');
+            htmlParts.push('</div>');
             htmlParts.push('</div>');
           }
           
           htmlParts.push('</div>');
         });
 
-        htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 12px; margin-top: 30px;">');
-        htmlParts.push('<p>FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>');
-        htmlParts.push('<p>This report contains ' + evaluations.length + ' evaluation(s)</p>');
-        htmlParts.push('</div>');
         htmlParts.push('</body></html>');
 
         const htmlContent = htmlParts.join('');
@@ -606,17 +606,16 @@
             htmlParts.push('<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #E0E7FF;">');
             htmlParts.push('<p style="color: #6B7280; font-size: 14px; margin-bottom: 10px;"><strong>Signature:</strong></p>');
             htmlParts.push('<p style="font-family: \"Brush Script MT\", cursive; font-size: 24px; color: #1F2937; font-style: italic;">' + ev.evaluatorSignature + '</p>');
+            htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 11px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #E0E7FF;">');
+            htmlParts.push('<p style="margin: 3px 0;">FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>');
+            htmlParts.push('<p style="margin: 3px 0;">Evaluation #' + (index + 1) + '</p>');
+            htmlParts.push('</div>');
             htmlParts.push('</div>');
           }
           
           htmlParts.push('</div>');
         });
 
-        htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 12px; margin-top: 30px;">');
-        htmlParts.push('<p>FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>');
-        htmlParts.push('<p>This report contains ' + evaluations.length + ' evaluation(s)</p>');
-        htmlParts.push('</div>');
-        
         // Auto-print
         htmlParts.push('<script type="text/javascript">window.onload = function() { window.print(); }<\/script>');
         htmlParts.push('</body></html>');
