@@ -442,82 +442,7 @@
         }
       };
 
-      const exportToExcel = () => {
-        let csvContent = '';
-        
-        if (activeTab === 'appointments') {
-          const headers = ['ID', 'Evaluator Name', 'Parent/Guardian Name', 'Client Name', 'Service Provider', 'Email', 'Phone', 'Address', 'Service Types', 'Date', 'Time', 'Notes', 'Status', 'Submitted At'];
-          
-          if (appointments.length === 0) {
-            alert('No appointments to export.');
-            return;
-          }
-          
-          const rows = appointments.map(apt => [
-            `'${apt.id}`,
-            apt.evaluatorName || '',
-            apt.parentGuardianName || '',
-            apt.clientName || '',
-            apt.serviceProviderName || '',
-            apt.email || '',
-            apt.phone || '',
-            apt.address || '',
-            (apt.serviceType || []).join('; '),
-            apt.appointmentDate || '',
-            apt.appointmentTime || '',
-            apt.notes || '',
-            apt.status || 'pending',
-            apt.submittedAt ? formatDateTime(apt.submittedAt) : ''
-          ]);
-          
-          csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-          ].join('\n');
-        } else {
-          const headers = ['Evaluation ID', 'Appointment ID', 'Type', 'Evaluator Name', 'Parent/Guardian', 'Client Name', 'Service Provider', 'Service Types', 'Email', 'Responses', 'Submitted At'];
-          
-          if (evaluations.length === 0) {
-            alert('No evaluations to export.');
-            return;
-          }
-          
-          const rows = evaluations.map(ev => {
-            const responsesText = (ev.responses || [])
-              .map(resp => `Q: ${resp.question} | A: ${resp.answer}`)
-              .join(' || ');
-            
-            return [
-              `'${ev.id}`,
-              `'${ev.appointmentId}`,
-              ev.evaluationType === 'staff' ? 'Staff/Service Evaluation' : 'Parental Provider Evaluation',
-              ev.evaluatorName || '',
-              ev.parentGuardianName || '',
-              ev.clientName || '',
-              ev.serviceProviderName || '',
-              (ev.serviceType || []).join('; '),
-              ev.email || '',
-              responsesText,
-              ev.submittedAt ? formatDateTime(ev.submittedAt) : ''
-            ];
-          });
-          
-          csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-          ].join('\n');
-        }
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `FOR_ALL_HOME_CARE_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      };
 
       const exportToWord = () => {
         if (evaluations.length === 0) {
@@ -580,7 +505,16 @@
             htmlParts.push('<div class="answer">' + resp.answer + '</div>');
           });
           
-          htmlParts.push('</div></div>');
+          htmlParts.push('</div>');
+          
+          if (ev.evaluatorSignature) {
+            htmlParts.push('<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #E0E7FF;">');
+            htmlParts.push('<p style="color: #6B7280; font-size: 14px; margin-bottom: 10px;"><strong>Signature:</strong></p>');
+            htmlParts.push('<p style="font-family: \"Brush Script MT\", cursive; font-size: 24px; color: #1F2937; font-style: italic;">' + ev.evaluatorSignature + '</p>');
+            htmlParts.push('</div>');
+          }
+          
+          htmlParts.push('</div>');
         });
 
         htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 12px; margin-top: 30px;">');
@@ -663,7 +597,16 @@
             htmlParts.push('<div class="answer">' + resp.answer + '</div>');
           });
           
-          htmlParts.push('</div></div>');
+          htmlParts.push('</div>');
+          
+          if (ev.evaluatorSignature) {
+            htmlParts.push('<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #E0E7FF;">');
+            htmlParts.push('<p style="color: #6B7280; font-size: 14px; margin-bottom: 10px;"><strong>Signature:</strong></p>');
+            htmlParts.push('<p style="font-family: \"Brush Script MT\", cursive; font-size: 24px; color: #1F2937; font-style: italic;">' + ev.evaluatorSignature + '</p>');
+            htmlParts.push('</div>');
+          }
+          
+          htmlParts.push('</div>');
         });
 
         htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 12px; margin-top: 30px;">');
@@ -870,34 +813,25 @@
                 </div>
 
                 <div className="p-6">
-                  <div className="mb-4 flex gap-3 flex-wrap">
-                    <button
-                      onClick={exportToExcel}
-                      className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Export to Excel
-                    </button>
-                    
-                    {activeTab === 'evaluations' && (
-                      <>
-                        <button
-                          onClick={exportToWord}
-                          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          <FileText className="w-4 h-4" />
-                          Export to Word
-                        </button>
-                        
-                        <button
-                          onClick={exportToPDF}
-                          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                          <FileText className="w-4 h-4" />
-                          Export to PDF
-                        </button>
-                      </>
-                    )}
+                  {activeTab === 'evaluations' && (
+                    <div className="mb-4 flex gap-3 flex-wrap">
+                      <button
+                        onClick={exportToWord}
+                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Export to Word
+                      </button>
+                      
+                      <button
+                        onClick={exportToPDF}
+                        className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Export to PDF
+                      </button>
+                    </div>
+                  )}
                   </div>
 
                   {activeTab === 'appointments' && (
