@@ -1,179 +1,147 @@
 // API Client for Home Care System - Google Sheets Backend
-// Replace YOUR_GOOGLE_APPS_SCRIPT_URL_HERE with your actual deployment URL
+// Fixed version with proper error handling and CORS support
 
 const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw-33BF0L-fYzR4YxyDDS4IPSR8MstzZzHGSV589yzb9sDuX-ELUbgCyCfndLXXQLEocg/exec';
 
 class HomeCareAPI {
-  // Submit appointment with evaluation
-  static async submitAppointment(appointmentData, evaluationData) {
+  // Helper method to make requests with proper error handling
+  static async makeRequest(action, data = null) {
     try {
-      const response = await fetch(`${GOOGLE_SHEETS_API_URL}?action=submitAppointment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          appointmentId: appointmentData.id,
-          evaluatorName: appointmentData.evaluatorName,
-          evaluatorSignature: appointmentData.evaluatorSignature,
-          parentGuardianName: appointmentData.parentGuardianName,
-          clientName: appointmentData.clientName,
-          serviceProviderName: appointmentData.serviceProviderName,
-          email: appointmentData.email,
-          phone: appointmentData.phone,
-          address: appointmentData.address,
-          appointmentDate: appointmentData.appointmentDate,
-          appointmentTime: appointmentData.appointmentTime,
-          serviceType: appointmentData.serviceType,
-          notes: appointmentData.notes,
-          evaluation: evaluationData
-        }),
-        redirect: 'follow'
+      let url = `${GOOGLE_SHEETS_API_URL}?action=${action}`;
+      
+      // For Google Apps Script, we need to use GET with query params for all requests
+      // because POST often triggers CORS issues
+      if (data) {
+        // Convert data to query parameters
+        const params = new URLSearchParams();
+        params.append('data', JSON.stringify(data));
+        url += `&${params.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow',
+        mode: 'cors', // Explicitly set CORS mode
       });
 
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return data;
+
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      return result;
     } catch (error) {
-      console.error('API Error:', error);
+      console.error(`❌ API Error (${action}):`, error.message);
       throw error;
     }
+  }
+
+  // Submit appointment with evaluation
+  static async submitAppointment(appointmentData, evaluationData) {
+    console.log('📤 Submitting appointment to Google Sheets...');
+    return await this.makeRequest('submitAppointment', {
+      appointmentId: appointmentData.id,
+      evaluatorName: appointmentData.evaluatorName,
+      evaluatorSignature: appointmentData.evaluatorSignature || '',
+      parentGuardianName: appointmentData.parentGuardianName,
+      clientName: appointmentData.clientName,
+      serviceProviderName: appointmentData.serviceProviderName,
+      email: appointmentData.email,
+      phone: appointmentData.phone,
+      address: appointmentData.address,
+      appointmentDate: appointmentData.appointmentDate,
+      appointmentTime: appointmentData.appointmentTime,
+      serviceType: Array.isArray(appointmentData.serviceType) 
+        ? appointmentData.serviceType.join(', ') 
+        : appointmentData.serviceType,
+      notes: appointmentData.notes || '',
+      status: appointmentData.status || 'pending',
+      submittedAt: appointmentData.submittedAt,
+      evaluation: evaluationData
+    });
   }
 
   // Get all appointments
   static async getAppointments() {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getAppointments`, {
-        method: 'GET',
-        redirect: 'follow'
-      });
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      return data.appointments || [];
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
-    }
+    console.log('📥 Fetching appointments from Google Sheets...');
+    const result = await this.makeRequest('getAppointments');
+    return result.appointments || [];
   }
 
   // Get all evaluations
   static async getEvaluations() {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getEvaluations`, {
-        method: 'GET',
-        redirect: 'follow'
-      });
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      return data.evaluations || [];
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
-    }
+    console.log('📥 Fetching evaluations from Google Sheets...');
+    const result = await this.makeRequest('getEvaluations');
+    return result.evaluations || [];
   }
 
   // Update appointment status
   static async updateAppointmentStatus(id, status) {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_API_URL}?action=updateStatus`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id, status }),
-        redirect: 'follow'
-      });
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      return data;
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
-    }
+    console.log(`📝 Updating appointment ${id} status to ${status}...`);
+    return await this.makeRequest('updateStatus', { id, status });
   }
 
   // Delete appointment
   static async deleteAppointment(id) {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_API_URL}?action=deleteAppointment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-        redirect: 'follow'
-      });
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      return data;
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
-    }
+    console.log(`🗑️ Deleting appointment ${id}...`);
+    return await this.makeRequest('deleteAppointment', { id });
   }
 
   // Delete evaluation
   static async deleteEvaluation(id) {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_API_URL}?action=deleteEvaluation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-        redirect: 'follow'
-      });
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      return data;
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
-    }
+    console.log(`🗑️ Deleting evaluation ${id}...`);
+    return await this.makeRequest('deleteEvaluation', { id });
   }
 
   // Health check
   static async healthCheck() {
     try {
-      const response = await fetch(`${GOOGLE_SHEETS_API_URL}?action=health`, {
-        method: 'GET',
-        redirect: 'follow'
-      });
-
-      const data = await response.json();
-      return data;
+      console.log('🏥 Checking Google Sheets API health...');
+      const result = await this.makeRequest('health');
+      console.log('✅ Google Sheets API is healthy:', result);
+      return result;
     } catch (error) {
-      console.error('API Error:', error);
-      throw error;
+      console.warn('⚠️ Google Sheets API health check failed:', error.message);
+      return { status: 'error', message: error.message };
+    }
+  }
+
+  // Test if API is accessible
+  static async isAvailable() {
+    try {
+      const health = await this.healthCheck();
+      return health.status === 'ok' || health.status === 'healthy';
+    } catch (error) {
+      return false;
     }
   }
 }
 
-// Check if Google Sheets API is configured
+// Initialize and check configuration
 if (typeof window !== 'undefined') {
   window.HomeCareAPI = HomeCareAPI;
   
-  if (GOOGLE_SHEETS_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+  if (GOOGLE_SHEETS_API_URL.includes('YOUR_GOOGLE_APPS_SCRIPT_URL_HERE')) {
     console.warn('⚠️ Google Sheets API URL not configured. Using localStorage only mode.');
     console.warn('📋 Follow GOOGLE-SHEETS-SETUP.md to set up cloud storage.');
   } else {
-    console.log('✅ Google Sheets API configured');
+    console.log('✅ Google Sheets API URL configured');
+    
+    // Test connection on load (non-blocking)
+    HomeCareAPI.healthCheck()
+      .then(result => {
+        if (result.status === 'ok' || result.status === 'healthy') {
+          console.log('✅ Google Sheets connection successful');
+        }
+      })
+      .catch(err => {
+        console.warn('⚠️ Google Sheets connection failed. App will use localStorage only.');
+        console.warn('Error:', err.message);
+      });
   }
 }
