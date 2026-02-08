@@ -614,8 +614,8 @@
         htmlParts.push('<p>This report contains ' + evaluations.length + ' evaluation(s)</p>');
         htmlParts.push('</div>');
         
-        // Auto-print without closing script tag issue
-        htmlParts.push('<script' + ' type="text/javascript">window.onload = function() { window.print(); };</script' + '>');
+        // Auto-print
+        htmlParts.push('<script type="text/javascript">window.onload = function() { window.print(); }<\/script>');
         htmlParts.push('</body></html>');
 
         const htmlContent = htmlParts.join('');
