@@ -1,0 +1,73 @@
+-- FOR ALL HOME CARE - Supabase Database Schema
+-- Run this in your Supabase SQL Editor
+
+-- Create appointments table
+CREATE TABLE IF NOT EXISTS appointments (
+    id TEXT PRIMARY KEY,
+    evaluator_name TEXT NOT NULL,
+    evaluator_signature TEXT,
+    parent_guardian_name TEXT,
+    client_name TEXT,
+    service_provider_name TEXT,
+    email TEXT,
+    phone TEXT,
+    address TEXT,
+    appointment_date TEXT,
+    appointment_time TEXT,
+    service_type TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'pending',
+    submitted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create evaluations table
+CREATE TABLE IF NOT EXISTS evaluations (
+    id TEXT PRIMARY KEY,
+    appointment_id TEXT REFERENCES appointments(id) ON DELETE CASCADE,
+    evaluation_type TEXT,
+    evaluator_name TEXT,
+    parent_guardian_name TEXT,
+    client_name TEXT,
+    service_provider_name TEXT,
+    service_type TEXT,
+    email TEXT,
+    responses JSONB,
+    submitted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE evaluations ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for public access (since this is a public form)
+-- Anyone can insert
+CREATE POLICY "Enable insert for all users" ON appointments
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Enable insert for all users" ON evaluations
+    FOR INSERT WITH CHECK (true);
+
+-- Anyone can read
+CREATE POLICY "Enable read for all users" ON appointments
+    FOR SELECT USING (true);
+
+CREATE POLICY "Enable read for all users" ON evaluations
+    FOR SELECT USING (true);
+
+-- Anyone can update
+CREATE POLICY "Enable update for all users" ON appointments
+    FOR UPDATE USING (true);
+
+-- Anyone can delete
+CREATE POLICY "Enable delete for all users" ON appointments
+    FOR DELETE USING (true);
+
+CREATE POLICY "Enable delete for all users" ON evaluations
+    FOR DELETE USING (true);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
+CREATE INDEX IF NOT EXISTS idx_evaluations_appointment_id ON evaluations(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_submitted_at ON appointments(submitted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evaluations_submitted_at ON evaluations(submitted_at DESC);
