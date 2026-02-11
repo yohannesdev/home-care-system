@@ -4,24 +4,47 @@
 const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbxjGyx9cIscN2_TB0T3_FZF6rC3UybgwVkuxHLqayQxI8hjnAxBkg8evMJ7LzHYRoqE1w/exec';
 
 class HomeCareAPI {
-  // Helper method to make requests with proper error handling
-  static async makeRequest(action, data = null) {
+  // GET request for read operations
+  static async makeGetRequest(action) {
     try {
-      let url = `${GOOGLE_SHEETS_API_URL}?action=${action}`;
+      const url = `${GOOGLE_SHEETS_API_URL}?action=${action}`;
       
-      // For Google Apps Script, we need to use GET with query params for all requests
-      // because POST often triggers CORS issues
-      if (data) {
-        // Convert data to query parameters
-        const params = new URLSearchParams();
-        params.append('data', JSON.stringify(data));
-        url += `&${params.toString()}`;
-      }
-
       const response = await fetch(url, {
         method: 'GET',
         redirect: 'follow',
-        mode: 'cors', // Explicitly set CORS mode
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error(`❌ API Error (${action}):`, error.message);
+      throw error;
+    }
+  }
+
+  // POST request for write operations
+  static async makePostRequest(action, data) {
+    try {
+      const url = `${GOOGLE_SHEETS_API_URL}?action=${action}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        redirect: 'follow',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
@@ -44,7 +67,7 @@ class HomeCareAPI {
   // Submit appointment with evaluation
   static async submitAppointment(appointmentData, evaluationData) {
     console.log('📤 Submitting appointment to Google Sheets...');
-    return await this.makeRequest('submitAppointment', {
+    return await this.makePostRequest('submitAppointment', {
       appointmentId: appointmentData.id,
       evaluatorName: appointmentData.evaluatorName,
       evaluatorSignature: appointmentData.evaluatorSignature || '',
@@ -69,40 +92,40 @@ class HomeCareAPI {
   // Get all appointments
   static async getAppointments() {
     console.log('📥 Fetching appointments from Google Sheets...');
-    const result = await this.makeRequest('getAppointments');
+    const result = await this.makeGetRequest('getAppointments');
     return result.appointments || [];
   }
 
   // Get all evaluations
   static async getEvaluations() {
     console.log('📥 Fetching evaluations from Google Sheets...');
-    const result = await this.makeRequest('getEvaluations');
+    const result = await this.makeGetRequest('getEvaluations');
     return result.evaluations || [];
   }
 
   // Update appointment status
   static async updateAppointmentStatus(id, status) {
     console.log(`📝 Updating appointment ${id} status to ${status}...`);
-    return await this.makeRequest('updateStatus', { id, status });
+    return await this.makePostRequest('updateStatus', { id, status });
   }
 
   // Delete appointment
   static async deleteAppointment(id) {
     console.log(`🗑️ Deleting appointment ${id}...`);
-    return await this.makeRequest('deleteAppointment', { id });
+    return await this.makePostRequest('deleteAppointment', { id });
   }
 
   // Delete evaluation
   static async deleteEvaluation(id) {
     console.log(`🗑️ Deleting evaluation ${id}...`);
-    return await this.makeRequest('deleteEvaluation', { id });
+    return await this.makePostRequest('deleteEvaluation', { id });
   }
 
   // Health check
   static async healthCheck() {
     try {
       console.log('🏥 Checking Google Sheets API health...');
-      const result = await this.makeRequest('health');
+      const result = await this.makeGetRequest('health');
       console.log('✅ Google Sheets API is healthy:', result);
       return result;
     } catch (error) {
