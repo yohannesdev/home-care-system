@@ -118,6 +118,14 @@
       </svg>
     );
 
+    const RefreshCw = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+    );
+
     const Zap = (props) => (
       <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -172,26 +180,30 @@
           setEvaluations(localEvals);
           console.log('✅ Data loaded from localStorage:', localApts.length, 'appointments');
 
-          // Also try to sync with backend API (if available)
+          // ALWAYS sync with Google Sheets to get latest data from all devices
           try {
             const [appointmentsData, evaluationsData] = await Promise.all([
               HomeCareAPI.getAppointments(),
               HomeCareAPI.getEvaluations()
             ]);
             
-            // Only update if server has data (don't overwrite localStorage with empty data)
             if (appointmentsData && appointmentsData.length > 0) {
-              setAppointments(appointmentsData);
-              setEvaluations(evaluationsData || []);
-              // Update localStorage with server data
-              localStorage.setItem('homeCareAppointments', JSON.stringify(appointmentsData));
-              localStorage.setItem('homeCareEvaluations', JSON.stringify(evaluationsData || []));
-              console.log('✅ Data synced from server:', appointmentsData.length, 'appointments');
+              // Merge server data with local data (server data takes priority)
+              const mergedAppointments = appointmentsData;
+              const mergedEvaluations = evaluationsData || [];
+              
+              setAppointments(mergedAppointments);
+              setEvaluations(mergedEvaluations);
+              localStorage.setItem('homeCareAppointments', JSON.stringify(mergedAppointments));
+              localStorage.setItem('homeCareEvaluations', JSON.stringify(mergedEvaluations));
+              console.log('✅ Data synced from Google Sheets:', mergedAppointments.length, 'appointments');
+            } else if (localApts.length === 0) {
+              console.log('ℹ️ No data on server or local');
             } else {
-              console.log('ℹ️ Server has no data, keeping localStorage data');
+              console.log('ℹ️ Server returned no data, keeping localStorage');
             }
           } catch (error) {
-            console.log('ℹ️ Backend not available (using localStorage only):', error.message);
+            console.log('⚠️ Google Sheets unavailable, using localStorage only:', error.message);
           }
         };
         
@@ -358,54 +370,75 @@
       };
 
       const updateAppointmentStatus = async (id, newStatus) => {
+        // Update UI immediately
+        const updated = appointments.map(apt => 
+          apt.id === id ? { ...apt, status: newStatus } : apt
+        );
+        setAppointments(updated);
+        localStorage.setItem('homeCareAppointments', JSON.stringify(updated));
+        
+        // Then sync with server in background
         try {
           await HomeCareAPI.updateAppointmentStatus(id, newStatus);
-          // Reload data from server
-          const appointmentsData = await HomeCareAPI.getAppointments();
-          setAppointments(appointmentsData);
+          console.log('✅ Status updated on server');
         } catch (error) {
-          console.warn('⚠️ Server unavailable, using localStorage');
-          const updated = appointments.map(apt => 
-            apt.id === id ? { ...apt, status: newStatus } : apt
-          );
-          setAppointments(updated);
-          localStorage.setItem('homeCareAppointments', JSON.stringify(updated));
+          console.warn('⚠️ Server update failed, but localStorage is updated');
         }
       };
 
       const deleteAppointment = async (id) => {
+        // Delete from UI and localStorage immediately
+        const updated = appointments.filter(apt => apt.id !== id);
+        const updatedEvals = evaluations.filter(ev => ev.appointmentId !== id);
+        
+        setAppointments(updated);
+        setEvaluations(updatedEvals);
+        localStorage.setItem('homeCareAppointments', JSON.stringify(updated));
+        localStorage.setItem('homeCareEvaluations', JSON.stringify(updatedEvals));
+        
+        // Then try to delete from server in background
         try {
           await HomeCareAPI.deleteAppointment(id);
-          // Reload data from server
-          const [appointmentsData, evaluationsData] = await Promise.all([
-            HomeCareAPI.getAppointments(),
-            HomeCareAPI.getEvaluations()
-          ]);
-          setAppointments(appointmentsData);
-          setEvaluations(evaluationsData);
+          console.log('✅ Appointment deleted from server');
         } catch (error) {
-          console.warn('⚠️ Server unavailable, using localStorage');
-          const updated = appointments.filter(apt => apt.id !== id);
-          setAppointments(updated);
-          localStorage.setItem('homeCareAppointments', JSON.stringify(updated));
-          
-          const updatedEvals = evaluations.filter(ev => ev.appointmentId !== id);
-          setEvaluations(updatedEvals);
-          localStorage.setItem('homeCareEvaluations', JSON.stringify(updatedEvals));
+          console.warn('⚠️ Server unavailable, but localStorage is updated');
         }
       };
 
       const deleteEvaluation = async (id) => {
+        // Delete from UI and localStorage immediately
+        const updated = evaluations.filter(ev => ev.id !== id);
+        setEvaluations(updated);
+        localStorage.setItem('homeCareEvaluations', JSON.stringify(updated));
+        
+        // Then try to delete from server in background
         try {
           await HomeCareAPI.deleteEvaluation(id);
-          // Reload data from server
-          const evaluationsData = await HomeCareAPI.getEvaluations();
-          setEvaluations(evaluationsData);
+          console.log('✅ Evaluation deleted from server');
         } catch (error) {
-          console.warn('⚠️ Server unavailable, using localStorage');
-          const updated = evaluations.filter(ev => ev.id !== id);
-          setEvaluations(updated);
-          localStorage.setItem('homeCareEvaluations', JSON.stringify(updated));
+          console.warn('⚠️ Server unavailable, but localStorage is updated');
+        }
+      };
+
+      const refreshFromServer = async () => {
+        try {
+          console.log('🔄 Refreshing data from Google Sheets...');
+          const [appointmentsData, evaluationsData] = await Promise.all([
+            HomeCareAPI.getAppointments(),
+            HomeCareAPI.getEvaluations()
+          ]);
+          
+          if (appointmentsData) {
+            setAppointments(appointmentsData);
+            setEvaluations(evaluationsData || []);
+            localStorage.setItem('homeCareAppointments', JSON.stringify(appointmentsData));
+            localStorage.setItem('homeCareEvaluations', JSON.stringify(evaluationsData || []));
+            console.log('✅ Data refreshed:', appointmentsData.length, 'appointments,', (evaluationsData || []).length, 'evaluations');
+            alert(`✅ Refreshed: ${appointmentsData.length} appointments, ${(evaluationsData || []).length} evaluations`);
+          }
+        } catch (error) {
+          console.error('❌ Refresh failed:', error);
+          alert('❌ Failed to refresh from Google Sheets. Please check your connection and try again.');
         }
       };
 
@@ -418,6 +451,15 @@
         if (!timeString) return '';
         const [hours, minutes] = timeString.split(':');
         const hour = parseInt(hours);
+        
+        // Validate time range
+        if (isNaN(hour) || hour < 0 || hour > 23) {
+          return 'Invalid Time';
+        }
+        if (!minutes || isNaN(parseInt(minutes))) {
+          return 'Invalid Time';
+        }
+        
         const ampm = hour >= 12 ? 'PM' : 'AM';
         const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
         return `${displayHour}:${minutes} ${ampm}`;
@@ -511,16 +553,16 @@
             htmlParts.push('<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #E0E7FF;">');
             htmlParts.push('<p style="color: #6B7280; font-size: 14px; margin-bottom: 10px;"><strong>Signature:</strong></p>');
             htmlParts.push('<p style="font-family: \"Brush Script MT\", cursive; font-size: 24px; color: #1F2937; font-style: italic;">' + ev.evaluatorSignature + '</p>');
-            htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 11px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #E0E7FF;">');
-            htmlParts.push('<p style="margin: 3px 0;">FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>');
-            htmlParts.push('<p style="margin: 3px 0;">Evaluation #' + (index + 1) + '</p>');
-            htmlParts.push('</div>');
             htmlParts.push('</div>');
           }
           
           htmlParts.push('</div>');
         });
 
+        htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 12px; margin-top: 30px;">');
+        htmlParts.push('<p>FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>');
+        htmlParts.push('<p>This report contains ' + evaluations.length + ' evaluation(s)</p>');
+        htmlParts.push('</div>');
         htmlParts.push('</body></html>');
 
         const htmlContent = htmlParts.join('');
@@ -606,16 +648,17 @@
             htmlParts.push('<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #E0E7FF;">');
             htmlParts.push('<p style="color: #6B7280; font-size: 14px; margin-bottom: 10px;"><strong>Signature:</strong></p>');
             htmlParts.push('<p style="font-family: \"Brush Script MT\", cursive; font-size: 24px; color: #1F2937; font-style: italic;">' + ev.evaluatorSignature + '</p>');
-            htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 11px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #E0E7FF;">');
-            htmlParts.push('<p style="margin: 3px 0;">FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>');
-            htmlParts.push('<p style="margin: 3px 0;">Evaluation #' + (index + 1) + '</p>');
-            htmlParts.push('</div>');
             htmlParts.push('</div>');
           }
           
           htmlParts.push('</div>');
         });
 
+        htmlParts.push('<div style="text-align: center; color: #6B7280; font-size: 12px; margin-top: 30px;">');
+        htmlParts.push('<p>FOR ALL HOME CARE AND AGENCY LLC - Confidential Document</p>');
+        htmlParts.push('<p>This report contains ' + evaluations.length + ' evaluation(s)</p>');
+        htmlParts.push('</div>');
+        
         // Auto-print
         htmlParts.push('<script type="text/javascript">window.onload = function() { window.print(); }<\/script>');
         htmlParts.push('</body></html>');
@@ -713,8 +756,20 @@
           <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
             <div className="max-w-7xl mx-auto">
               <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">FOR ALL HOME CARE AND AGENCY LLC</h1>
-                <p className="text-gray-600">Admin Dashboard - Manage appointments and evaluations</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-4xl font-bold text-gray-800 mb-2">FOR ALL HOME CARE AND AGENCY LLC</h1>
+                    <p className="text-gray-600">Admin Dashboard - Manage appointments and evaluations</p>
+                  </div>
+                  <button
+                    onClick={refreshFromServer}
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                    title="Sync data from Google Sheets"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    Refresh from Server
+                  </button>
+                </div>
               </div>
 
               {showPowerAppsInfo && (
