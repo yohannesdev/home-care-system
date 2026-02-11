@@ -25,7 +25,6 @@ const HomeCareAPI = {
       const { data: appointment, error: appointmentError } = await supabaseClient
         .from('appointments')
         .insert([{
-          id: appointmentData.appointmentId,
           evaluator_name: appointmentData.evaluatorName,
           evaluator_signature: appointmentData.evaluatorSignature,
           parent_guardian_name: appointmentData.parentGuardianName,
@@ -56,8 +55,7 @@ const HomeCareAPI = {
         const { data: evaluation, error: evaluationError } = await supabaseClient
           .from('evaluations')
           .insert([{
-            id: appointmentData.evaluation.id,
-            appointment_id: appointmentData.evaluation.appointmentId,
+            appointment_id: appointment[0].id,
             evaluation_type: appointmentData.evaluation.evaluationType,
             evaluator_name: appointmentData.evaluation.evaluatorName,
             parent_guardian_name: appointmentData.evaluation.parentGuardianName || '',

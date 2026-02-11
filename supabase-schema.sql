@@ -1,9 +1,16 @@
 -- FOR ALL HOME CARE - Supabase Database Schema
 -- Run this in your Supabase SQL Editor
 
--- Create appointments table
-CREATE TABLE IF NOT EXISTS appointments (
-    id TEXT PRIMARY KEY,
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Drop and recreate tables to fix schema
+DROP TABLE IF EXISTS evaluations CASCADE;
+DROP TABLE IF EXISTS appointments CASCADE;
+
+-- Create appointments table with UUID
+CREATE TABLE appointments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     evaluator_name TEXT NOT NULL,
     evaluator_signature TEXT,
     parent_guardian_name TEXT,
@@ -20,10 +27,10 @@ CREATE TABLE IF NOT EXISTS appointments (
     submitted_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create evaluations table
-CREATE TABLE IF NOT EXISTS evaluations (
-    id TEXT PRIMARY KEY,
-    appointment_id TEXT REFERENCES appointments(id) ON DELETE CASCADE,
+-- Create evaluations table with UUID
+CREATE TABLE evaluations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    appointment_id UUID REFERENCES appointments(id) ON DELETE CASCADE,
     evaluation_type TEXT,
     evaluator_name TEXT,
     parent_guardian_name TEXT,
@@ -38,6 +45,15 @@ CREATE TABLE IF NOT EXISTS evaluations (
 -- Enable Row Level Security (RLS)
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evaluations ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist (for re-running)
+DROP POLICY IF EXISTS "Enable insert for all users" ON appointments;
+DROP POLICY IF EXISTS "Enable insert for all users" ON evaluations;
+DROP POLICY IF EXISTS "Enable read for all users" ON appointments;
+DROP POLICY IF EXISTS "Enable read for all users" ON evaluations;
+DROP POLICY IF EXISTS "Enable update for all users" ON appointments;
+DROP POLICY IF EXISTS "Enable delete for all users" ON appointments;
+DROP POLICY IF EXISTS "Enable delete for all users" ON evaluations;
 
 -- Create policies for public access (since this is a public form)
 -- Anyone can insert
