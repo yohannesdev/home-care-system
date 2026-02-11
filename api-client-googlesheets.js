@@ -1,7 +1,7 @@
 // API Client for Home Care System - Google Sheets Backend
 // Fixed version with proper error handling and CORS support
 
-const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw-33BF0L-fYzR4YxyDDS4IPSR8MstzZzHGSV589yzb9sDuX-ELUbgCyCfndLXXQLEocg/exec';
+const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbxjGyx9cIscN2_TB0T3_FZF6rC3UybgwVkuxHLqayQxI8hjnAxBkg8evMJ7LzHYRoqE1w/exec';
 
 class HomeCareAPI {
   // Helper method to make requests with proper error handling
