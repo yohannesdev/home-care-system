@@ -8,7 +8,7 @@ const SUPABASE_URL = 'https://gwpxmrasgdpbvocupcmh.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_aB9hkpYwia6VdFY7k2qVRg_h1PXi318';
 
 // Initialize Supabase client (requires @supabase/supabase-js loaded from CDN)
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /**
  * Home Care API wrapper for Supabase
@@ -22,7 +22,7 @@ const HomeCareAPI = {
       console.log('Submitting appointment to Supabase:', appointmentData);
       
       // Insert appointment
-      const { data: appointment, error: appointmentError } = await supabase
+      const { data: appointment, error: appointmentError } = await supabaseClient
         .from('appointments')
         .insert([{
           id: appointmentData.appointmentId,
@@ -53,7 +53,7 @@ const HomeCareAPI = {
       
       // Insert evaluation if provided
       if (appointmentData.evaluation) {
-        const { data: evaluation, error: evaluationError } = await supabase
+        const { data: evaluation, error: evaluationError } = await supabaseClient
           .from('evaluations')
           .insert([{
             id: appointmentData.evaluation.id,
@@ -97,7 +97,7 @@ const HomeCareAPI = {
     try {
       console.log('Fetching appointments from Supabase...');
       
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('appointments')
         .select('*')
         .order('submitted_at', { ascending: false });
@@ -144,7 +144,7 @@ const HomeCareAPI = {
     try {
       console.log('Fetching evaluations from Supabase...');
       
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('evaluations')
         .select('*')
         .order('submitted_at', { ascending: false });
@@ -187,7 +187,7 @@ const HomeCareAPI = {
     try {
       console.log('Updating appointment status:', { appointmentId, newStatus });
       
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('appointments')
         .update({ status: newStatus })
         .eq('id', appointmentId)
@@ -221,7 +221,7 @@ const HomeCareAPI = {
     try {
       console.log('Deleting appointment:', appointmentId);
       
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('appointments')
         .delete()
         .eq('id', appointmentId)
@@ -255,7 +255,7 @@ const HomeCareAPI = {
     try {
       console.log('Deleting evaluation:', evaluationId);
       
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('evaluations')
         .delete()
         .eq('id', evaluationId)
