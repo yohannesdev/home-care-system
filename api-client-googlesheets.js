@@ -9,17 +9,24 @@ class HomeCareAPI {
     try {
       const url = `${GOOGLE_SHEETS_API_URL}?action=${action}`;
       
+      console.log(`🔵 Making GET request to: ${url}`);
+      
       const response = await fetch(url, {
         method: 'GET',
         redirect: 'follow',
         mode: 'cors',
       });
 
+      console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ HTTP Error Response:`, errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log(`✅ Response data:`, result);
       
       if (result.error) {
         throw new Error(result.error);
@@ -28,6 +35,7 @@ class HomeCareAPI {
       return result;
     } catch (error) {
       console.error(`❌ API Error (${action}):`, error.message);
+      console.error(`❌ Full error:`, error);
       throw error;
     }
   }
@@ -36,6 +44,9 @@ class HomeCareAPI {
   static async makePostRequest(action, data) {
     try {
       const url = `${GOOGLE_SHEETS_API_URL}?action=${action}`;
+      
+      console.log(`🔵 Making POST request to: ${url}`);
+      console.log(`📦 Sending data:`, data);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -47,11 +58,24 @@ class HomeCareAPI {
         body: JSON.stringify(data)
       });
 
+      console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+      console.log(`📥 Response headers:`, response.headers);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ HTTP Error Response Body:`, errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error(`❌ Non-JSON response:`, text);
+        throw new Error(`Expected JSON response but got: ${contentType}`);
       }
 
       const result = await response.json();
+      console.log(`✅ Response data:`, result);
       
       if (result.error) {
         throw new Error(result.error);
@@ -60,6 +84,7 @@ class HomeCareAPI {
       return result;
     } catch (error) {
       console.error(`❌ API Error (${action}):`, error.message);
+      console.error(`❌ Full error:`, error);
       throw error;
     }
   }
