@@ -20,6 +20,7 @@ const HomeCareAPI = {
   async submitAppointment(appointmentData) {
     try {
       console.log('Submitting appointment to Supabase:', appointmentData);
+      console.log('Evaluation data included?', appointmentData.evaluation ? 'YES' : 'NO');
       
       // Insert appointment
       const { data: appointment, error: appointmentError } = await supabaseClient
