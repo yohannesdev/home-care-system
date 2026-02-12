@@ -546,8 +546,7 @@
           htmlParts.push('<div class="qa-section">');
           
           (ev.responses || []).forEach((resp, qIndex) => {
-            htmlParts.push('<div class="question">' + (qIndex + 1) + '. ' + resp.question + '</div>');
-            htmlParts.push('<div class="answer">' + resp.answer + '</div>');
+            htmlParts.push('<div class="qa-pair" style="display: flex; align-items: baseline; margin-bottom: 8px;"><span class="question" style="font-weight: 500; margin-right: 8px;">' + (qIndex + 1) + '. ' + resp.question + ':</span><span class="answer" style="font-weight: 400; color: #1F2937;">' + resp.answer + '</span></div>');
           });
           
           htmlParts.push('</div>');
@@ -641,8 +640,7 @@
           htmlParts.push('<div class="qa-section">');
           
           (ev.responses || []).forEach((resp, qIndex) => {
-            htmlParts.push('<div class="question">' + (qIndex + 1) + '. ' + resp.question + '</div>');
-            htmlParts.push('<div class="answer">' + resp.answer + '</div>');
+            htmlParts.push('<div class="qa-pair" style="display: flex; align-items: baseline; margin-bottom: 8px;"><span class="question" style="font-weight: 500; margin-right: 8px;">' + (qIndex + 1) + '. ' + resp.question + ':</span><span class="answer" style="font-weight: 400; color: #1F2937;">' + resp.answer + '</span></div>');
           });
           
           htmlParts.push('</div>');
@@ -1032,9 +1030,9 @@
 
                             <div className="space-y-3">
                               {ev.responses.filter(r => r.answer !== 'Not answered').map((resp, idx) => (
-                                <div key={idx} className="bg-white p-4 rounded-lg border">
-                                  <p className="text-sm font-medium text-gray-700 mb-2">{resp.question}</p>
-                                  <p className="text-gray-900 font-semibold">{resp.answer}</p>
+                                <div key={idx} className="flex flex-row flex-wrap items-baseline bg-white p-4 rounded-lg border mb-2">
+                                  <span className="text-sm font-medium text-gray-700 mr-2">{idx + 1}. {resp.question}:</span>
+                                  <span className="text-gray-900 font-semibold">{resp.answer}</span>
                                 </div>
                               ))}
                             </div>
