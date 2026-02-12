@@ -170,41 +170,39 @@
       // Load data from localStorage on mount
       useEffect(() => {
         const loadData = async () => {
-          // ALWAYS load from localStorage first (for GitHub Pages)
-          const storedAppointments = localStorage.getItem('homeCareAppointments');
-          const storedEvaluations = localStorage.getItem('homeCareEvaluations');
+          // Clear old localStorage data from pre-UUID era to avoid conflicts
+          try {
+            const storedAppointments = localStorage.getItem('homeCareAppointments');
+            if (storedAppointments) {
+              const appointments = JSON.parse(storedAppointments);
+              // If appointments have numeric string IDs (not UUIDs), clear them
+              if (appointments.length > 0 && appointments[0].id && appointments[0].id.match(/^\d+$/)) {
+                console.log('🧹 Clearing old localStorage data (numeric IDs, migrating to UUID)');
+                localStorage.removeItem('homeCareAppointments');
+                localStorage.removeItem('homeCareEvaluations');
+              }
+            }
+          } catch (e) {
+            console.log('Migration check: no issues found');
+          }
           
-          const localApts = storedAppointments ? JSON.parse(storedAppointments) : [];
-          const localEvals = storedEvaluations ? JSON.parse(storedEvaluations) : [];
-          
-          setAppointments(localApts);
-          setEvaluations(localEvals);
-          console.log('✅ Data loaded from localStorage:', localApts.length, 'appointments');
-
-          // ALWAYS sync with Google Sheets to get latest data from all devices
+          // Load fresh data from Supabase
           try {
             const [appointmentsData, evaluationsData] = await Promise.all([
               HomeCareAPI.getAppointments(),
               HomeCareAPI.getEvaluations()
             ]);
             
-            if (appointmentsData && appointmentsData.length > 0) {
-              // Merge server data with local data (server data takes priority)
-              const mergedAppointments = appointmentsData;
-              const mergedEvaluations = evaluationsData || [];
-              
-              setAppointments(mergedAppointments);
-              setEvaluations(mergedEvaluations);
-              localStorage.setItem('homeCareAppointments', JSON.stringify(mergedAppointments));
-              localStorage.setItem('homeCareEvaluations', JSON.stringify(mergedEvaluations));
-              console.log('✅ Data synced from Google Sheets:', mergedAppointments.length, 'appointments');
-            } else if (localApts.length === 0) {
-              console.log('ℹ️ No data on server or local');
-            } else {
-              console.log('ℹ️ Server returned no data, keeping localStorage');
-            }
+            const appointments = appointmentsData?.appointments || [];
+            const evaluations = evaluationsData?.evaluations || [];
+            
+            setAppointments(appointments);
+            setEvaluations(evaluations);
+            localStorage.setItem('homeCareAppointments', JSON.stringify(appointments));
+            localStorage.setItem('homeCareEvaluations', JSON.stringify(evaluations));
+            console.log('✅ Data loaded from Supabase:', appointments.length, 'appointments');
           } catch (error) {
-            console.log('⚠️ Google Sheets unavailable, using localStorage only:', error.message);
+            console.error('⚠️ Supabase load failed:', error.message);
           }
         };
         
@@ -431,7 +429,7 @@
 
       const refreshFromServer = async () => {
         try {
-          console.log('🔄 Refreshing data from Google Sheets...');
+          console.log('🔄 Refreshing data from Supabase...');
           const [appointmentsData, evaluationsData] = await Promise.all([
             HomeCareAPI.getAppointments(),
             HomeCareAPI.getEvaluations()
@@ -447,7 +445,7 @@
           }
         } catch (error) {
           console.error('❌ Refresh failed:', error);
-          alert('❌ Failed to refresh from Google Sheets. Please check your connection and try again.');
+          alert('❌ Failed to refresh from Supabase. Please check your connection and try again.');
         }
       };
 
@@ -773,7 +771,7 @@
                   <button
                     onClick={refreshFromServer}
                     className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                    title="Sync data from Google Sheets"
+                    title="Sync data from Supabase"
                   >
                     <RefreshCw className="w-5 h-5" />
                     Refresh from Server
