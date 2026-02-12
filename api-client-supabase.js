@@ -53,29 +53,38 @@ const HomeCareAPI = {
       
       // Insert evaluation if provided
       if (appointmentData.evaluation) {
+        console.log('📋 Preparing evaluation insert with data:', appointmentData.evaluation);
+        
+        const evaluationInsertData = {
+          appointment_id: appointment[0].id,
+          evaluation_type: appointmentData.evaluation.evaluationType,
+          evaluator_name: appointmentData.evaluation.evaluatorName,
+          parent_guardian_name: appointmentData.evaluation.parentGuardianName || '',
+          client_name: appointmentData.evaluation.clientName || '',
+          service_provider_name: appointmentData.evaluation.serviceProviderName || '',
+          service_type: Array.isArray(appointmentData.evaluation.serviceType) 
+            ? appointmentData.evaluation.serviceType.join(', ') 
+            : '',
+          email: appointmentData.evaluation.email || '',
+          responses: appointmentData.evaluation.responses || []
+        };
+        
+        console.log('📤 Inserting evaluation to Supabase:', evaluationInsertData);
+        
         const { data: evaluation, error: evaluationError } = await supabaseClient
           .from('evaluations')
-          .insert([{
-            appointment_id: appointment[0].id,
-            evaluation_type: appointmentData.evaluation.evaluationType,
-            evaluator_name: appointmentData.evaluation.evaluatorName,
-            parent_guardian_name: appointmentData.evaluation.parentGuardianName || '',
-            client_name: appointmentData.evaluation.clientName || '',
-            service_provider_name: appointmentData.evaluation.serviceProviderName || '',
-            service_type: Array.isArray(appointmentData.evaluation.serviceType) 
-              ? appointmentData.evaluation.serviceType.join(', ') 
-              : '',
-            email: appointmentData.evaluation.email || '',
-            responses: appointmentData.evaluation.responses || []
-          }])
+          .insert([evaluationInsertData])
           .select();
         
         if (evaluationError) {
-          console.error('Evaluation insert error:', evaluationError);
+          console.error('❌ Evaluation insert error:', evaluationError);
+          console.error('Error details:', evaluationError.message, evaluationError.details, evaluationError.hint);
           throw evaluationError;
         }
         
-        console.log('Evaluation inserted successfully:', evaluation);
+        console.log('✅ Evaluation inserted successfully:', evaluation);
+      } else {
+        console.warn('⚠️ No evaluation data provided - skipping evaluation insert');
       }
       
       return {
