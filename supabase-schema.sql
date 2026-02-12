@@ -33,6 +33,7 @@ CREATE TABLE evaluations (
     appointment_id UUID REFERENCES appointments(id) ON DELETE CASCADE,
     evaluation_type TEXT,
     evaluator_name TEXT,
+    evaluator_signature TEXT,
     parent_guardian_name TEXT,
     client_name TEXT,
     service_provider_name TEXT,

@@ -308,7 +308,7 @@
             appointmentId,
             evaluationType,
             evaluatorName: clientInfo.evaluatorName,
-            evaluatorSignature: clientInfo.evaluatorSignature,
+            evaluatorSignature: evaluationData.evaluatorSignature || clientInfo.evaluatorSignature,
             parentGuardianName: clientInfo.parentGuardianName,
             clientName: clientInfo.clientName,
             serviceProviderName: clientInfo.serviceProviderName,
@@ -1038,6 +1038,13 @@
                                 </div>
                               ))}
                             </div>
+
+                            {ev.evaluatorSignature && (
+                              <div className="mt-6 pt-4 border-t border-gray-300">
+                                <p className="text-sm font-medium text-gray-700 mb-2">Evaluator Signature</p>
+                                <p className="text-2xl italic font-handwriting text-gray-800">{ev.evaluatorSignature}</p>
+                              </div>
+                            )}
                           </div>
                         ))
                       )}
@@ -1347,6 +1354,21 @@
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* Evaluation Signature Field */}
+                  <div className="bg-white p-5 rounded-lg border border-gray-200 mt-5">
+                    <label className="block text-sm font-medium text-gray-800 mb-3">
+                      Evaluator Signature *
+                    </label>
+                    <input
+                      type="text"
+                      value={evaluationData.evaluatorSignature || ''}
+                      onChange={(e) => setEvaluationData({...evaluationData, evaluatorSignature: e.target.value})}
+                      placeholder="Enter your signature or initials"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                      required
+                    />
                   </div>
                 </div>
 
