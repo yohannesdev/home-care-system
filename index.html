@@ -379,11 +379,30 @@
         );
         setAppointments(updated);
         localStorage.setItem('homeCareAppointments', JSON.stringify(updated));
-        
+
+        // Find the appointment details for calendar event
+        const apt = appointments.find(a => a.id === id);
+
         // Then sync with server in background
         try {
           await HomeCareAPI.updateAppointmentStatus(id, newStatus);
           console.log('✅ Status updated on server');
+
+          // If approved, open Google Calendar event link
+          if (newStatus === 'approved' && apt) {
+            // Build start/end datetime in RFC3339 (YYYYMMDDTHHMMSSZ)
+            const date = apt.appointmentDate || apt.date || '';
+            const time = (apt.appointmentTime || '09:00').padEnd(5, '0');
+            // Assume 1 hour duration
+            const start = date.replace(/-/g, '') + 'T' + time.replace(':', '') + '00';
+            const endHour = String(Number(time.split(':')[0]) + 1).padStart(2, '0');
+            const end = date.replace(/-/g, '') + 'T' + endHour + time.slice(2) + '00';
+            const text = encodeURIComponent('Home Care Visit: ' + (apt.clientName || ''));
+            const details = encodeURIComponent('Service Provider: ' + (apt.serviceProviderName || '') + '\nNotes: ' + (apt.notes || ''));
+            const location = encodeURIComponent(apt.address || '');
+            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}&location=${location}`;
+            window.open(url, '_blank');
+          }
         } catch (error) {
           console.warn('⚠️ Server update failed, but localStorage is updated');
         }
