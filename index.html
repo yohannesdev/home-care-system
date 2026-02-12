@@ -335,20 +335,16 @@
           console.log('✅ Data saved to localStorage:', newAppointment);
 
           // Try to also save to backend API (if available)
-          let googleSheetsSaved = false;
-          let googleSheetsError = null;
           try {
-            const result = await HomeCareAPI.submitAppointment(newAppointment, newEvaluation);
-            console.log('✅ Data also saved to Google Sheets:', result);
-            googleSheetsSaved = true;
+            const appointmentDataWithEvaluation = {
+              ...newAppointment,
+              evaluation: newEvaluation
+            };
+            const result = await HomeCareAPI.submitAppointment(appointmentDataWithEvaluation);
+            console.log('✅ Data saved to Supabase:', result);
           } catch (error) {
-            console.error('❌ Google Sheets save failed:', error);
-            console.error('Error details:', error.message);
-            console.error('Stack:', error.stack);
-            googleSheetsError = error.message;
-            
-            // Show alert to user
-            alert(`⚠️ WARNING: Data saved locally but NOT to Google Sheets!\n\nError: ${error.message}\n\nPlease check:\n1. Google Apps Script is deployed correctly\n2. Browser console (F12) for details\n3. Contact admin to fix Google Sheets connection`);
+            console.error('❌ Supabase save failed:', error);
+            alert(`⚠️ WARNING: Data saved locally but NOT to database!\n\nError: ${error.message}\n\nPlease check your internet connection.`);
           }
 
           setSubmitted(true);
