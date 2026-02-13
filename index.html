@@ -1291,7 +1291,16 @@
                       <input
                         type="date"
                         value={clientInfo.appointmentDate}
-                        onChange={(e) => setClientInfo({...clientInfo, appointmentDate: e.target.value})}
+                        onChange={(e) => {
+                          const selectedDate = new Date(e.target.value);
+                          const dayOfWeek = selectedDate.getDay(); // 0 = Sunday
+                          if (dayOfWeek === 0) {
+                            alert('The agency is not working on Sundays. Please pick a working day instead.');
+                            // Optionally, clear the date selection
+                            return;
+                          }
+                          setClientInfo({...clientInfo, appointmentDate: e.target.value});
+                        }}
                         min={today}
                         max={maxDateStr}
                         className={`w-full px-4 py-3 border ${errors.appointmentDate ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none`}
