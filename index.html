@@ -1296,7 +1296,7 @@
                           const dayOfWeek = selectedDate.getDay(); // 0 = Sunday
                           if (dayOfWeek === 0) {
                             alert('The agency is not working on Sundays. Please pick a working day instead.');
-                            // Optionally, clear the date selection
+                            setClientInfo({...clientInfo, appointmentDate: ''});
                             return;
                           }
                           setClientInfo({...clientInfo, appointmentDate: e.target.value});
